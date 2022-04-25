@@ -1,0 +1,7 @@
+
+kypo_disable_qxl_module_name: qxl
+kypo_disable_qxl_grub_file: /etc/default/grub
+kypo_disable_qxl_grub_variable: GRUB_CMDLINE_LINUX_DEFAULT
+kypo_disable_qxl_kernel_parameter: '{{ kypo_disable_qxl_module_name }}.modeset'
+kypo_disable_qxl_kernel_parameter_value: 0
+

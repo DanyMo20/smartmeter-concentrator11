@@ -1,0 +1,28 @@
+
+- name: get current kernel parameters from grub
+  shell: grep -P "^{{ kypo_disable_qxl_grub_variable }}=([\"']).*\1$" {{ kypo_disable_qxl_grub_file }} | grep -oP "(?<=([\"'])).*(?=\1)" || echo
+  changed_when: false
+  register: kypo_disable_qxl_grub_variable_value
+
+- name: add kernel parameter that disable qxl module
+  lineinfile:
+    path: '{{ kypo_disable_qxl_grub_file }}'
+    regexp: "^{{ kypo_disable_qxl_grub_variable }}=\"(.*)\""
+    line: '{{ kypo_disable_qxl_grub_variable }}="{{ kypo_disable_qxl_grub_variable_value.stdout }}{{ kypo_disable_qxl_kernel_parameter }}={{ kypo_disable_qxl_kernel_parameter_value }} "'
+  when: kypo_disable_qxl_kernel_parameter not in kypo_disable_qxl_grub_variable_value.stdout
+
+- name: update grub
+  command: update-grub
+
+- name: reboot system
+  shell: "sleep 2 && reboot"
+  async: 1
+  poll: 0
+
+- name: wait until system boot
+  wait_for_connection:
+    connect_timeout: 20
+    sleep: 5
+    delay: 5
+    timeout: 300
+

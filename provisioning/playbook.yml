@@ -1,0 +1,137 @@
+# This is an empty template playbook
+# You can write your custom configuration here
+
+- name: disable qxl
+  hosts:
+    - routers
+    - hosts
+  gather_facts: yes
+  become: yes
+  become_user: root
+
+  tasks:
+    - name: disable qxl
+      include_role:
+        name: disable-qxl
+      when: ansible_os_family == 'Debian'
+
+
+- name: user access
+  hosts:
+    - user_accessible_nodes
+  gather_facts: no
+  become: yes
+  become_user: root
+  roles:
+    - role: kypo-user-access
+      kypo_user_access_password: 'kypo'
+
+- name: Flush ALL rules on MAN
+  hosts: man
+  strategy: free
+  gather_facts: yes
+  become: yes
+  become_user: root
+
+  tasks:
+    - name: setup
+      include_role:
+        name: iptables
+      vars:
+        iptables_rules:
+          - flush: yes
+
+
+- name: Setup DROP rules on MAN
+  hosts: man
+  strategy: free
+  gather_facts: yes
+  become: yes
+  become_user: root
+
+  tasks:
+    - set_fact:
+        private_ip_address_range: ['10.0.0.0/8', '172.16.0.0/12', '224.0.0.0/4']
+    - set_fact:
+        host_interface: 'eth2'
+
+    - name: setup
+      include_role:
+        name: iptables
+      vars:
+        iptables_rules:
+          - chain: FORWARD
+            destination: '{{ item }}'
+            in_interface: '{{ host_interface }}'
+            out_interface: eth0
+            jump: DROP
+      loop: '{{ private_ip_address_range }}'
+
+- name: Update apt, install maven and git
+  hosts:
+    - smart-meter
+    - concentrator
+  gather_facts: no
+  become: yes
+  become_user: root
+  tasks:
+  - name: Update apt packages
+    become: yes
+    apt:
+      update_cache: yes
+      cache_valid_time: 86400 
+
+  - name: Install maven
+    become: yes
+    apt:
+      pkg:
+       - maven
+
+  - name: Install git
+    apt:
+      name: git
+      state: present
+
+- name: Smart-meter setup
+  hosts:
+    - smart-meter
+  gather_facts: no
+  become: yes
+  become_user: ubuntu
+  tasks: 
+
+  - name: Clone gurux repository
+    become: yes
+    ansible.builtin.git:
+       repo: https://github.com/DanyMo20/gurux.git
+       dest: /home/ubuntu/gurux
+       clone: yes
+
+  - name: Run maven and create smart-meter
+    shell: mvn clean package
+    args:
+      chdir: /home/ubuntu/gurux/gurux.dlms.server.example.java/
+
+- name: Concentrator setup
+  hosts:
+    - concentrator
+  gather_facts: no
+  become: yes
+  become_user: ubuntu
+  tasks: 
+
+  - name: Clone gurux repository
+    become: yes
+    ansible.builtin.git:
+       repo: https://github.com/DanyMo20/gurux.git
+       dest: /home/ubuntu/gurux
+       clone: yes
+
+  - name: Run maven and create smart-meter
+    shell: mvn clean package
+    args: 
+      chdir: /home/ubuntu/gurux/gurux.dlms.client.example.java/    
+
+
+
+

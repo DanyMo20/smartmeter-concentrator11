@@ -1,0 +1,14 @@
+galaxy_info:
+    role_name: kypo-disable-qxl
+    author: KYPO Team
+    description: Disable loading of kernel module qxl.
+    licence: MIT
+    min_ansible_version: 2.3.3
+    platforms:
+        - name: Debian
+          versions:
+              - all
+        - name: Ubuntu
+          versions:
+              - all
+
